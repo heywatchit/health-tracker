@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <style>
+        :root {
+            --bg-primary: #faf8f5;
+            --bg-secondary: #ffffff;
+            --bg-card: #ffffff;
+            --text-primary: #2a1810;
+            --text-secondary: #6b5d52;
+            --text-muted: #a39588;
+            --accent-primary: #d97757;
+            --accent-secondary: #e8a87c;
+            --accent-tertiary: #c1502e;
+            --border-light: #e8dfd5;
+            --shadow-soft: 0 2px 8px rgba(42, 24, 16, 0.06);
+            --shadow-medium: 0 4px 16px rgba(42, 24, 16, 0.1);
+            --shadow-strong: 0 8px 32px rgba(42, 24, 16, 0.15);
+            --pain-low: #52b788;
+            --pain-medium: #f4a261;
+            --pain-high: #e76f51;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'DM Sans', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        header {
+            margin-bottom: 40px;
+            animation: fadeInDown 0.6s ease-out;
+        }
+        
+        h1 {
+            font-family: 'Fraunces', serif;
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            letter-spacing: -0.02em;
+        }
+        
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+        
+        .btn {
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow-soft);
+            font-family: 'DM Sans', sans-serif;
+        }
+        
+        .btn:hover {
+            background: var(--accent-tertiary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 2px solid var(--border-light);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--bg-primary);
+            border-color: var(--accent-primary);
+        }
+        
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.9rem;
+        }
+        
+        .conditions-grid {
+            display: grid;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .condition-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--shadow-soft);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            animation: fadeInUp 0.5s ease-out backwards;
+        }
+        
+        .condition-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-strong);
+            border-color: var(--accent-secondary);
+        }
+        
+        .condition-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        
+        .condition-name {
+            font-family: 'Fraunces', serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+        
+        .condition-meta {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        
+        .delete-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 1.2rem;
+            transition: all 0.2s;
+        }
+        
+        .delete-btn:hover {
+            background: #fee;
+            color: #e76f51;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            animation: fadeIn 0.8s ease-out;
+        }
+        
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+        
+        .empty-state h2 {
+            font-family: 'Fraunces', serif;
+            font-size: 1.8rem;
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .empty-state p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(42, 24, 16, 0.5);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+        }
+        
+        .modal {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: var(--shadow-strong);
+            animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        .modal h2 {
+            font-family: 'Fraunces', serif;
+            font-size: 2rem;
+            margin-bottom: 24px;
+            color: var(--text-primary);
+        }
+        
+        .form-group {
+            margin-bottom: 24px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border-light);
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: 'DM Sans', sans-serif;
+            transition: all 0.3s;
+            background: var(--bg-primary);
+        }
+        
+        input[type="text"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            background: white;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .slider-container {
+            margin: 24px 0;
+        }
+        
+        .pain-level-display {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .pain-value {
+            font-family: 'Fraunces', serif;
+            font-size: 4rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+        
+        .pain-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: var(--border-light);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(217, 119, 87, 0.4);
+            transition: all 0.2s;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 8px rgba(217, 119, 87, 0.4);
+        }
+        
+        .pain-scale {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 32px;
+        }
+        
+        .modal-actions .btn {
+            flex: 1;
+        }
+        
+        .entries-list {
+            margin-top: 24px;
+        }
+        
+        .entry {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 12px;
+            border-left: 4px solid var(--pain-low);
+            box-shadow: var(--shadow-soft);
+            transition: all 0.3s;
+            animation: slideInRight 0.4s ease-out backwards;
+        }
+        
+        .entry:hover {
+            transform: translateX(4px);
+            box-shadow: var(--shadow-medium);
+        }
+        
+        .entry.pain-medium {
+            border-left-color: var(--pain-medium);
+        }
+        
+        .entry.pain-high {
+            border-left-color: var(--pain-high);
+        }
+        
+        .entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .entry-date {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .entry-pain {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .pain-badge {
+            font-family: 'Fraunces', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 8px;
+            background: var(--pain-low);
+            color: white;
+        }
+        
+        .pain-badge.pain-medium {
+            background: var(--pain-medium);
+        }
+        
+        .pain-badge.pain-high {
+            background: var(--pain-high);
+        }
+        
+        .entry-notes {
+            color: var(--text-primary);
+            margin-top: 8px;
+            line-height: 1.5;
+        }
+        
+        .chart-container {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            margin: 24px 0;
+            box-shadow: var(--shadow-soft);
+        }
+        
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .chart-title {
+            font-family: 'Fraunces', serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .timeframe-selector {
+            display: flex;
+            gap: 8px;
+            background: var(--bg-primary);
+            padding: 4px;
+            border-radius: 10px;
+        }
+        
+        .timeframe-btn {
+            padding: 6px 12px;
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+        
+        .timeframe-btn.active {
+            background: white;
+            color: var(--accent-primary);
+            box-shadow: var(--shadow-soft);
+        }
+        
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            margin-bottom: 20px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .back-btn:hover {
+            color: var(--accent-primary);
+            transform: translateX(-4px);
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .char-count {
+            text-align: right;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        
+        .char-count.warning {
+            color: var(--pain-high);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Health Tracker</h1>
+            <p class="subtitle">Monitor your recovery journey</p>
+        </header>
+
+        <!-- Main View (Conditions List) -->
+        <div id="mainView">
+            <button class="btn" onclick="showAddConditionModal()">+ Add Condition</button>
+            
+            <div class="conditions-grid" id="conditionsList"></div>
+        </div>
+
+        <!-- Detail View (Entries for a condition) -->
+        <div id="detailView" style="display: none;">
+            <a href="#" class="back-btn" onclick="showMainView(); return false;">← Back to conditions</a>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 id="detailConditionName" style="font-family: 'Fraunces', serif; font-size: 2.5rem; margin: 0;"></h2>
+                <button class="btn" onclick="showAddEntryModal()">+ Log Entry</button>
+            </div>
+            
+            <div id="chartSection"></div>
+            
+            <div class="entries-list" id="entriesList"></div>
+        </div>
+    </div>
+
+    <!-- Add Condition Modal -->
+    <div class="modal-overlay" id="addConditionModal">
+        <div class="modal">
+            <h2>Add New Condition</h2>
+            <div class="form-group">
+                <label for="conditionName">Condition Name</label>
+                <input type="text" id="conditionName" placeholder="e.g., Cervical Surgery, Lower Back Pain" maxlength="50">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeAddConditionModal()">Cancel</button>
+                <button class="btn" onclick="saveCondition()">Add Condition</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Entry Modal -->
+    <div class="modal-overlay" id="addEntryModal">
+        <div class="modal">
+            <h2>Log Entry</h2>
+            
+            <div class="slider-container">
+                <label>Pain Level</label>
+                <div class="pain-level-display">
+                    <div class="pain-value" id="painValueDisplay">5</div>
+                    <div class="pain-label">Current pain level</div>
+                </div>
+                <input type="range" id="painLevel" min="0" max="10" value="5" oninput="updatePainDisplay()">
+                <div class="pain-scale">
+                    <span>0 - No pain</span>
+                    <span>5 - Moderate</span>
+                    <span>10 - Severe</span>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="entryNotes">Notes (optional)</label>
+                <textarea id="entryNotes" placeholder="How are you feeling? Any observations?" maxlength="100" oninput="updateCharCount()"></textarea>
+                <div class="char-count" id="charCount">0/100 characters</div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeAddEntryModal()">Cancel</button>
+                <button class="btn" onclick="saveEntry()">Save Entry</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data structure
+        let conditions = JSON.parse(localStorage.getItem('healthConditions')) || [];
+        let currentConditionId = null;
+        let currentTimeframe = 7; // days
+        let painChart = null;
+
+        // Initialize
+        renderConditions();
+
+        function generateId() {
+            return Date.now() + Math.random().toString(36).substr(2, 9);
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem('healthConditions', JSON.stringify(conditions));
+        }
+
+        // Condition Management
+        function showAddConditionModal() {
+            document.getElementById('addConditionModal').classList.add('active');
+            document.getElementById('conditionName').value = '';
+            document.getElementById('conditionName').focus();
+        }
+
+        function closeAddConditionModal() {
+            document.getElementById('addConditionModal').classList.remove('active');
+        }
+
+        function saveCondition() {
+            const name = document.getElementById('conditionName').value.trim();
+            if (!name) {
+                alert('Please enter a condition name');
+                return;
+            }
+
+            const condition = {
+                id: generateId(),
+                name: name,
+                createdDate: new Date().toISOString(),
+                entries: []
+            };
+
+            conditions.push(condition);
+            saveToLocalStorage();
+            renderConditions();
+            closeAddConditionModal();
+        }
+
+        function deleteCondition(id) {
+            if (confirm('Are you sure you want to delete this condition and all its entries?')) {
+                conditions = conditions.filter(c => c.id !== id);
+                saveToLocalStorage();
+                renderConditions();
+            }
+        }
+
+        function renderConditions() {
+            const container = document.getElementById('conditionsList');
+            
+            if (conditions.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <h2>No Conditions Yet</h2>
+                        <p>Add a condition to start tracking your health</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = conditions.map((condition, index) => {
+                const entryCount = condition.entries.length;
+                const lastEntry = condition.entries.length > 0 
+                    ? new Date(condition.entries[condition.entries.length - 1].timestamp).toLocaleDateString()
+                    : 'No entries';
+
+                return `
+                    <div class="condition-card" onclick="viewCondition('${condition.id}')" style="animation-delay: ${index * 0.1}s">
+                        <div class="condition-header">
+                            <div>
+                                <div class="condition-name">${condition.name}</div>
+                                <div class="condition-meta">${entryCount} ${entryCount === 1 ? 'entry' : 'entries'} • Last: ${lastEntry}</div>
+                            </div>
+                            <button class="delete-btn" onclick="event.stopPropagation(); deleteCondition('${condition.id}')">×</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Entry Management
+        function viewCondition(id) {
+            currentConditionId = id;
+            const condition = conditions.find(c => c.id === id);
+            
+            document.getElementById('mainView').style.display = 'none';
+            document.getElementById('detailView').style.display = 'block';
+            document.getElementById('detailConditionName').textContent = condition.name;
+            
+            renderChart(condition);
+            renderEntries(condition);
+        }
+
+        function showMainView() {
+            document.getElementById('mainView').style.display = 'block';
+            document.getElementById('detailView').style.display = 'none';
+            currentConditionId = null;
+            if (painChart) {
+                painChart.destroy();
+                painChart = null;
+            }
+        }
+
+        function showAddEntryModal() {
+            document.getElementById('addEntryModal').classList.add('active');
+            document.getElementById('painLevel').value = 5;
+            document.getElementById('entryNotes').value = '';
+            updatePainDisplay();
+            updateCharCount();
+        }
+
+        function closeAddEntryModal() {
+            document.getElementById('addEntryModal').classList.remove('active');
+        }
+
+        function updatePainDisplay() {
+            const value = document.getElementById('painLevel').value;
+            const display = document.getElementById('painValueDisplay');
+            display.textContent = value;
+            
+            // Update color based on pain level
+            if (value <= 3) {
+                display.style.color = 'var(--pain-low)';
+            } else if (value <= 6) {
+                display.style.color = 'var(--pain-medium)';
+            } else {
+                display.style.color = 'var(--pain-high)';
+            }
+        }
+
+        function updateCharCount() {
+            const notes = document.getElementById('entryNotes').value;
+            const count = document.getElementById('charCount');
+            count.textContent = `${notes.length}/100 characters`;
+            count.classList.toggle('warning', notes.length > 100);
+        }
+
+        function saveEntry() {
+            const painLevel = parseInt(document.getElementById('painLevel').value);
+            const notes = document.getElementById('entryNotes').value.trim();
+
+            if (notes.length > 100) {
+                alert('Notes must be 100 characters or less');
+                return;
+            }
+
+            const entry = {
+                id: generateId(),
+                painLevel: painLevel,
+                notes: notes,
+                timestamp: new Date().toISOString()
+            };
+
+            const condition = conditions.find(c => c.id === currentConditionId);
+            condition.entries.push(entry);
+            saveToLocalStorage();
+            
+            renderChart(condition);
+            renderEntries(condition);
+            closeAddEntryModal();
+        }
+
+        function deleteEntry(conditionId, entryId) {
+            if (confirm('Delete this entry?')) {
+                const condition = conditions.find(c => c.id === conditionId);
+                condition.entries = condition.entries.filter(e => e.id !== entryId);
+                saveToLocalStorage();
+                renderChart(condition);
+                renderEntries(condition);
+            }
+        }
+
+        function renderEntries(condition) {
+            const container = document.getElementById('entriesList');
+            
+            if (condition.entries.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📝</div>
+                        <h2>No Entries Yet</h2>
+                        <p>Log your first entry to start tracking</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const sortedEntries = [...condition.entries].sort((a, b) => 
+                new Date(b.timestamp) - new Date(a.timestamp)
+            );
+
+            container.innerHTML = sortedEntries.map((entry, index) => {
+                const date = new Date(entry.timestamp);
+                const painClass = entry.painLevel <= 3 ? '' : entry.painLevel <= 6 ? 'pain-medium' : 'pain-high';
+                
+                return `
+                    <div class="entry ${painClass}" style="animation-delay: ${index * 0.05}s">
+                        <div class="entry-header">
+                            <div class="entry-date">${date.toLocaleDateString()} at ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                            <div class="entry-pain">
+                                <span class="pain-badge ${painClass}">${entry.painLevel}</span>
+                                <button class="delete-btn" onclick="deleteEntry('${condition.id}', '${entry.id}')">×</button>
+                            </div>
+                        </div>
+                        ${entry.notes ? `<div class="entry-notes">${entry.notes}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderChart(condition) {
+            const chartSection = document.getElementById('chartSection');
+            
+            if (condition.entries.length === 0) {
+                chartSection.innerHTML = '';
+                return;
+            }
+
+            chartSection.innerHTML = `
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <div class="chart-title">Pain Trend</div>
+                        <div class="timeframe-selector">
+                            <button class="timeframe-btn ${currentTimeframe === 7 ? 'active' : ''}" onclick="changeTimeframe(7)">Week</button>
+                            <button class="timeframe-btn ${currentTimeframe === 30 ? 'active' : ''}" onclick="changeTimeframe(30)">Month</button>
+                            <button class="timeframe-btn ${currentTimeframe === 90 ? 'active' : ''}" onclick="changeTimeframe(90)">90 Days</button>
+                            <button class="timeframe-btn ${currentTimeframe === 180 ? 'active' : ''}" onclick="changeTimeframe(180)">6 Months</button>
+                            <button class="timeframe-btn ${currentTimeframe === 365 ? 'active' : ''}" onclick="changeTimeframe(365)">Year</button>
+                        </div>
+                    </div>
+                    <canvas id="painChart"></canvas>
+                </div>
+            `;
+
+            updateChart(condition);
+        }
+
+        function changeTimeframe(days) {
+            currentTimeframe = days;
+            const condition = conditions.find(c => c.id === currentConditionId);
+            renderChart(condition);
+        }
+
+        function updateChart(condition) {
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - currentTimeframe);
+
+            const filteredEntries = condition.entries
+                .filter(e => new Date(e.timestamp) >= cutoffDate)
+                .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+            if (filteredEntries.length === 0) {
+                return;
+            }
+
+            const ctx = document.getElementById('painChart').getContext('2d');
+            
+            if (painChart) {
+                painChart.destroy();
+            }
+
+            painChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: filteredEntries.map(e => new Date(e.timestamp).toLocaleDateString()),
+                    datasets: [{
+                        label: 'Pain Level',
+                        data: filteredEntries.map(e => e.painLevel),
+                        borderColor: '#d97757',
+                        backgroundColor: 'rgba(217, 119, 87, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#d97757',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(42, 24, 16, 0.9)',
+                            padding: 12,
+                            cornerRadius: 8,
+                            titleFont: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            bodyFont: {
+                                size: 13
+                            },
+                            callbacks: {
+                                label: function(context) {
+                                    const entry = filteredEntries[context.dataIndex];
+                                    const lines = [`Pain Level: ${context.parsed.y}`];
+                                    if (entry.notes) {
+                                        lines.push(`Notes: ${entry.notes}`);
+                                    }
+                                    return lines;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 10,
+                            ticks: {
+                                stepSize: 1,
+                                font: {
+                                    size: 12
+                                },
+                                color: '#6b5d52'
+                            },
+                            grid: {
+                                color: 'rgba(232, 223, 213, 0.5)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: {
+                                    size: 11
+                                },
+                                color: '#6b5d52',
+                                maxRotation: 45,
+                                minRotation: 45
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeAddConditionModal();
+                closeAddEntryModal();
+            }
+        });
+    </script>
+</body>
+</html>
