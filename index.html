@@ -13,28 +13,42 @@
         .modal.active { display: flex; }
         .modal-content { background: white; padding: 30px; border-radius: 15px; width: 90%; max-width: 400px; }
         input, textarea, button { width: 100%; margin-bottom: 10px; padding: 10px; }
+        #detailView { display: none; }
     </style>
 </head>
 <body>
 
-<div class="container">
+<div class="container" id="mainView">
     <h1>Health Tracker</h1>
     <button onclick="document.getElementById('addConditionModal').classList.add('active')">+ Add Condition</button>
     <div id="conditionsList"></div>
 </div>
 
-<div class="modal" id="addConditionModal">
-    <div class="modal-content">
-        <h2>Add Condition</h2>
-        <input type="text" id="newConditionName" placeholder="e.g., Cervical Surgery">
-        <button onclick="saveCondition()">Add</button>
-        <button onclick="this.parentElement.parentElement.classList.remove('active')">Cancel</button>
-    </div>
+<div class="container" id="detailView">
+    <button onclick="document.getElementById('detailView').style.display='none'; document.getElementById('mainView').style.display='block'">← Back</button>
+    <h2 id="conditionTitle"></h2>
+    <canvas id="painChart"></canvas>
+    <button onclick="document.getElementById('addEntryModal').classList.add('active')">+ Log Entry</button>
+    <div id="entriesList"></div>
 </div>
+
+<div class="modal" id="addConditionModal"><div class="modal-content">
+    <h2>Add Condition</h2>
+    <input type="text" id="newConditionName" placeholder="Condition Name">
+    <button onclick="saveCondition()">Add</button>
+</div></div>
+
+<div class="modal" id="addEntryModal"><div class="modal-content">
+    <h2>Log Entry</h2>
+    <input type="number" id="painLevel" min="0" max="10" placeholder="Pain Level (0-10)">
+    <textarea id="notes" placeholder="Notes (optional)"></textarea>
+    <input type="datetime-local" id="entryDate">
+    <button onclick="saveEntry()">Save Entry</button>
+</div></div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCksroD7aa82WwzzdT1SaT-qmnIFinvqqQ",
@@ -46,25 +60,36 @@
     };
 
     const db = getFirestore(initializeApp(firebaseConfig));
-    
-    // Global functions
+    let currentConditionId = null;
+    let conditions = [];
+
     window.saveCondition = async () => {
         const name = document.getElementById('newConditionName').value;
-        if (!name) return;
         await addDoc(collection(db, "conditions"), { name, createdDate: new Date().toISOString(), entries: [] });
         document.getElementById('addConditionModal').classList.remove('active');
     };
 
+    window.openDetail = (id) => {
+        currentConditionId = id;
+        document.getElementById('mainView').style.display = 'none';
+        document.getElementById('detailView').style.display = 'block';
+        const cond = conditions.find(c => c.id === id);
+        document.getElementById('conditionTitle').innerText = cond.name;
+    };
+
+    window.saveEntry = async () => {
+        const pain = document.getElementById('painLevel').value;
+        const notes = document.getElementById('notes').value;
+        const date = document.getElementById('entryDate').value || new Date().toISOString();
+        const ref = doc(db, "conditions", currentConditionId);
+        await updateDoc(ref, { entries: arrayUnion({ pain, notes, date }) });
+        document.getElementById('addEntryModal').classList.remove('active');
+    };
+
     onSnapshot(query(collection(db, "conditions"), orderBy("createdDate", "desc")), (snapshot) => {
+        conditions = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         const list = document.getElementById('conditionsList');
-        list.innerHTML = '';
-        snapshot.forEach((doc) => {
-            const data = doc.data();
-            const div = document.createElement('div');
-            div.className = 'card';
-            div.innerHTML = `<h3>${data.name}</h3>`;
-            list.appendChild(div);
-        });
+        list.innerHTML = conditions.map(c => `<div class="card" onclick="openDetail('${c.id}')"><h3>${c.name}</h3></div>`).join('');
     });
 </script>
 </body>
