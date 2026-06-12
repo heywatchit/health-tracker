@@ -4,50 +4,81 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Health Tracker</title>
+    <style>
+        :root { --bg-primary: #faf8f5; --bg-secondary: #ffffff; --bg-card: #ffffff; --text-primary: #2a1810; --text-secondary: #6b5d52; --text-muted: #a39588; --accent-primary: #d97757; --accent-secondary: #e8a87c; --accent-tertiary: #c1502e; --border-light: #e8dfd5; --shadow-soft: 0 2px 8px rgba(42, 24, 16, 0.06); --shadow-medium: 0 4px 16px rgba(42, 24, 16, 0.1); --shadow-strong: 0 8px 32px rgba(42, 24, 16, 0.15); --pain-low: #52b788; --pain-medium: #f4a261; --pain-high: #e76f51; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'DM Sans', sans-serif; background: var(--bg-primary); color: var(--text-primary); padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(42,24,16,0.5); display: none; align-items: center; justify-content: center; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: white; padding: 40px; border-radius: 20px; width: 90%; max-width: 500px; }
+        .btn { background: var(--accent-primary); color: white; padding: 12px 28px; border-radius: 12px; cursor: pointer; border: none; }
+    </style>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         const firebaseConfig = {
-  apiKey: "AIzaSyCksroD7aa82WwzzdT1SaT-qmnIFinvqqQ",
-  authDomain: "health-tracker-5df4c.firebaseapp.com",
-  projectId: "health-tracker-5df4c",
-  storageBucket: "health-tracker-5df4c.firebasestorage.app",
-  messagingSenderId: "588946626451",
-  appId: "1:588946626451:web:bccd08bacd376f64dd7a66"
-};
+            apiKey: "AIzaSyCksroD7aa82WwzzdT1SaT-qmnIFinvqqQ",
+            authDomain: "health-tracker-5df4c.firebaseapp.com",
+            projectId: "health-tracker-5df4c",
+            storageBucket: "health-tracker-5df4c.firebasestorage.app",
+            messagingSenderId: "588946626451",
+            appId: "1:588946626451:web:bccd08bacd376f64dd7a66"
+        };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        
+        // Export to window so your buttons can find them
         window.db = db;
         window.collection = collection;
         window.addDoc = addDoc;
-        window.onSnapshot = onSnapshot;
-        window.query = query;
-        window.orderBy = orderBy;
-        window.deleteDoc = deleteDoc;
-        window.doc = doc;
+        
+        // Listen for real-time changes
+        onSnapshot(query(collection(db, "conditions"), orderBy("createdDate", "desc")), (snapshot) => {
+            window.conditions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            if (typeof renderConditions === 'function') renderConditions();
+        });
     </script>
-    </head>
+</head>
 <body>
+    <div class="container">
+        <h1>Health Tracker</h1>
+        <button class="btn" onclick="showAddConditionModal()">+ Add Condition</button>
+        <div id="conditionsList"></div>
+    </div>
+
+    <div class="modal-overlay" id="addConditionModal">
+        <div class="modal">
+            <h2>Add New Condition</h2>
+            <input type="text" id="conditionName" placeholder="Condition Name">
+            <button class="btn" onclick="saveCondition()">Add</button>
+            <button onclick="closeAddConditionModal()">Cancel</button>
+        </div>
+    </div>
+
     <script>
-        // REPLACE your saveCondition and render logic:
+        window.conditions = [];
+
+        function showAddConditionModal() { document.getElementById('addConditionModal').classList.add('active'); }
+        function closeAddConditionModal() { document.getElementById('addConditionModal').classList.remove('active'); }
+
         async function saveCondition() {
             const name = document.getElementById('conditionName').value.trim();
             if (!name) return;
-            await addDoc(collection(window.db, "conditions"), {
+            await addDoc(window.collection(window.db, "conditions"), {
                 name: name,
-                createdDate: new Date().toISOString(),
-                entries: []
+                createdDate: new Date().toISOString()
             });
             closeAddConditionModal();
         }
 
-        // Use this to fetch data live
-        window.onSnapshot(window.query(window.collection(window.db, "conditions"), window.orderBy("createdDate", "desc")), (snapshot) => {
-            conditions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderConditions();
-        });
+        function renderConditions() {
+            const list = document.getElementById('conditionsList');
+            list.innerHTML = window.conditions.map(c => `<div>${c.name}</div>`).join('');
+        }
     </script>
 </body>
 </html>
